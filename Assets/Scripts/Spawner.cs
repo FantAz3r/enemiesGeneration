@@ -1,30 +1,22 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Pool;
-
 
 public class Spawner : MonoBehaviour
 {
     [SerializeField] private int _poolMaxSize = 20;
     [SerializeField] private int _poolCapacity = 3;
-    [SerializeField] private float _repairRate = 2f; 
+    [SerializeField] private float _repairRate = 2f;
     [SerializeField] private float _moveDistance = 5f;
-    [SerializeField] private Unit _prefab; 
+    [SerializeField] private Unit _prefab;
     [SerializeField] private Transform[] _spawnPoints;
 
-    private WaitForSeconds wait;
-    private ObjectPool<Unit> _pool;
+    private WaitForSeconds _wait;
+    private UnitPool _unitPool;
+    private bool _enabled = true;
 
     private void Awake()
     {
-        _pool = new ObjectPool<Unit>(
-            createFunc: () => Instantiate(_prefab),
-            actionOnGet: (unit) => ActionOnGet(unit),
-            actionOnRelease: (unit) => ActionOnRelease(unit),
-            actionOnDestroy: (unit) => Destroy(unit),
-            collectionCheck: true,
-            defaultCapacity: _poolCapacity,
-            maxSize: _poolMaxSize);
+        _unitPool = new UnitPool(_prefab, _poolCapacity, _poolMaxSize);
     }
 
     private Transform GetSpawnPoint()
@@ -34,25 +26,22 @@ public class Spawner : MonoBehaviour
 
     private Vector3 GetRandomDirection(Transform spawnPoint)
     {
-        float minAngle = 0f;
-        float maxAngle = 360f;
-        float randomAngle = Random.Range(minAngle, maxAngle) * Mathf.Deg2Rad;
+        float randomAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
         Vector3 direction = new Vector3(Mathf.Cos(randomAngle), 0, Mathf.Sin(randomAngle));
-
         return spawnPoint.position + direction * _moveDistance;
     }
 
-    void Start()
+    private void Start()
     {
-        wait = new WaitForSeconds(_repairRate); 
-        StartCoroutine(SwawnDelay());
+        _wait = new WaitForSeconds(_repairRate);
+        StartCoroutine(SpawnDelay());
     }
 
     private void SpawnEnemy()
     {
-        if (_pool.CountAll < _poolMaxSize)
+        if (_unitPool.CountAll < _poolMaxSize)
         {
-            Unit enemy = _pool.Get();
+            Unit enemy = _unitPool.GetUnit();
             Transform spawnPoint = GetSpawnPoint();
             enemy.transform.position = spawnPoint.position;
 
@@ -61,23 +50,14 @@ public class Spawner : MonoBehaviour
         }
     }
 
-    private IEnumerator SwawnDelay()
+    private IEnumerator SpawnDelay()
     {
-        while (true) 
+        while (_enabled)
         {
-            yield return wait;
+            yield return _wait;
             SpawnEnemy();
         }
     }
-
-    private void ActionOnGet(Unit unit)
-    {
-        unit.gameObject.SetActive(true);
-    }
-
-    private void ActionOnRelease(Unit unit)
-    {
-        unit.gameObject.SetActive(false);
-    }
 }
+
 
