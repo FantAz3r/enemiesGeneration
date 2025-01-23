@@ -35,6 +35,7 @@ public class UnitPool
     private void ActionOnRelease(Unit unit)
     {
         unit.gameObject.SetActive(false);
+        unit.transform.position = Vector3.zero;
     }
 
     public int CountAll => _pool.CountAll; 

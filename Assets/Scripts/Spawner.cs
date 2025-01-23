@@ -19,22 +19,21 @@ public class Spawner : MonoBehaviour
         _unitPool = new UnitPool(_prefab, _poolCapacity, _poolMaxSize);
     }
 
+    private void Start()
+    {
+        _wait = new WaitForSeconds(_repairRate);
+        StartCoroutine(SpawnDelay());
+    }
+
     private Transform GetSpawnPoint()
     {
         return _spawnPoints[Random.Range(0, _spawnPoints.Length)];
     }
 
-    private Vector3 GetRandomDirection(Transform spawnPoint)
+    private Vector3 GetRandomDirection()
     {
         float randomAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-        Vector3 direction = new Vector3(Mathf.Cos(randomAngle), 0, Mathf.Sin(randomAngle));
-        return spawnPoint.position + direction * _moveDistance;
-    }
-
-    private void Start()
-    {
-        _wait = new WaitForSeconds(_repairRate);
-        StartCoroutine(SpawnDelay());
+        return new Vector3(Mathf.Cos(randomAngle), 0, Mathf.Sin(randomAngle)).normalized; 
     }
 
     private void SpawnEnemy()
@@ -45,8 +44,8 @@ public class Spawner : MonoBehaviour
             Transform spawnPoint = GetSpawnPoint();
             enemy.transform.position = spawnPoint.position;
 
-            Vector3 randomDestination = GetRandomDirection(spawnPoint);
-            enemy.InitializeDestination(randomDestination);
+            Vector3 randomDirection = GetRandomDirection(); 
+            enemy.InitializeDirection(randomDirection, _unitPool); 
         }
     }
 
