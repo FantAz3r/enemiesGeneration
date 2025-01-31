@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Spawner : MonoBehaviour
@@ -6,9 +7,11 @@ public class Spawner : MonoBehaviour
     [SerializeField] private int _poolMaxSize = 20;
     [SerializeField] private int _poolCapacity = 3;
     [SerializeField] private float _repairRate = 2f;
-    [SerializeField] private float _moveDistance = 5f;
-    [SerializeField] private Unit _prefab;
+
+    [SerializeField] private Unit _unitPrefab;
+    [SerializeField] private Mesh[] _unitMeshes;
     [SerializeField] private Transform[] _spawnPoints;
+    [SerializeField] private Target[] _targets;
 
     private WaitForSeconds _wait;
     private UnitPool _unitPool;
@@ -16,7 +19,7 @@ public class Spawner : MonoBehaviour
 
     private void Awake()
     {
-        _unitPool = new UnitPool(_prefab, _poolCapacity, _poolMaxSize);
+        _unitPool = new UnitPool(_unitPrefab, _poolCapacity, _poolMaxSize); 
     }
 
     private void Start()
@@ -25,27 +28,29 @@ public class Spawner : MonoBehaviour
         StartCoroutine(SpawnDelay());
     }
 
-    private Transform GetSpawnPoint()
+    private Transform GetSpawnPoint(out int spawnPointIndex)
     {
-        return _spawnPoints[Random.Range(0, _spawnPoints.Length)];
+        spawnPointIndex = Random.Range(0, _spawnPoints.Length);
+        return _spawnPoints[spawnPointIndex];
     }
 
-    private Vector3 GetRandomDirection()
+    public void SpawnUnit()
     {
-        float randomAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-        return new Vector3(Mathf.Cos(randomAngle), 0, Mathf.Sin(randomAngle)).normalized; 
-    }
 
-    private void SpawnEnemy()
-    {
         if (_unitPool.CountAll < _poolMaxSize)
         {
-            Unit enemy = _unitPool.GetUnit();
-            Transform spawnPoint = GetSpawnPoint();
-            enemy.transform.position = spawnPoint.position;
+            Unit unit = _unitPool.GetUnit();
+            Transform spawnPoint = GetSpawnPoint(out int spawnPointIndex);
+            MeshRenderer unitRenderer = unit.GetComponent<MeshRenderer>();
+            unit.transform.position = spawnPoint.position;
 
-            Vector3 randomDirection = GetRandomDirection(); 
-            enemy.InitializeDirection(randomDirection, _unitPool); 
+            if (unitRenderer != null && spawnPointIndex < _unitMeshes.Length)
+            {
+                unitRenderer.material = new Material(unitRenderer.material); 
+                unit.GetComponent<MeshFilter>().mesh = _unitMeshes[spawnPointIndex]; 
+            }
+
+            unit.Initialize(_targets[spawnPointIndex], _unitPool);
         }
     }
 
@@ -54,9 +59,10 @@ public class Spawner : MonoBehaviour
         while (_enabled)
         {
             yield return _wait;
-            SpawnEnemy();
+            SpawnUnit();
         }
     }
 }
+
 
 
